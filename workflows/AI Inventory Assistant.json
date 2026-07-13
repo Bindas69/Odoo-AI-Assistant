@@ -1,0 +1,208 @@
+{
+  "name": "AI Inventory Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ODOO_URL }}/jsonrpc",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"call\",\n  \"params\": {\n    \"service\": \"object\",\n    \"method\": \"execute_kw\",\n    \"args\": [\n      \"{{ $env.ODOO_DB }}\",\n      2,\n      \"{{ $env.ODOO_PASSWORD }}\",\n      \"product.product\",\n      \"search_read\",\n      [{{ JSON.stringify($json.domain) }}],\n      {\n        \"fields\": [\"id\", \"name\", \"default_code\"],\n        \"limit\": 5\n      }\n    ]\n  },\n  \"id\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1072,
+        0
+      ],
+      "id": "20009be0-a8b1-4259-bc9e-6f8fd816385a",
+      "name": "search_product"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bc518a19-395b-4647-b0f2-ae5dc884e332",
+              "name": "query",
+              "value": "red shirt medium",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "0e4c7b5a-809b-432f-af51-b1073ef34269",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.query;\nconst words = query.trim().split(/\\s+/).filter(w => w.length > 0);\n\n// AND together a \"name contains word\" condition for every word\nconst nameConditions = words.map(w => [\"name\", \"ilike\", w]);\nconst andOperators = Array(Math.max(0, nameConditions.length - 1)).fill(\"&\");\nconst nameGroup = [...andOperators, ...nameConditions];\n\n// OR: (all words in name)  OR  (full query matches SKU)  OR  (full query matches barcode)\nconst domain = [\n  \"|\", \"|\",\n  ...nameGroup,\n  [\"default_code\", \"ilike\", query],\n  [\"barcode\", \"ilike\", query]\n];\n\nreturn [{ json: { query, domain } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        0
+      ],
+      "id": "629b960b-f8bc-4565-8d77-647fa8f1103f",
+      "name": "build_search_domain"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple word-overlap similarity: fraction of query words found in the product name\nfunction matchScore(query, name) {\n  const queryWords = query.toLowerCase().trim().split(/\\s+/);\n  const nameLower = name.toLowerCase();\n  const matched = queryWords.filter(w => nameLower.includes(w));\n  return Math.round((matched.length / queryWords.length) * 100) / 100;\n}\n\nconst query = $('build_search_domain').first().json.query;\nconst results = $input.first().json.result;\n\nconst ranked = results.map(product => ({\n  product_id: product.id,\n  name: product.name,\n  default_code: product.default_code,\n  match_score: matchScore(query, product.name)\n})).sort((a, b) => b.match_score - a.match_score);\n\nreturn [{ json: { query, matches: ranked } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "068c8bd5-0896-4892-aa98-4415f5815437",
+      "name": "rank_results"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22659209-e495-47ba-a516-e5b4aa484a7b",
+              "name": "product_id",
+              "value": 41,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        992,
+        256
+      ],
+      "id": "40c9f644-9f86-4eed-9c01-00ef6654a855",
+      "name": "test_product_id"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ODOO_URL }}/jsonrpc",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"call\",\n  \"params\": {\n    \"service\": \"object\",\n    \"method\": \"execute_kw\",\n    \"args\": [\n      \"{{ $env.ODOO_DB }}\",\n      2,\n      \"{{ $env.ODOO_PASSWORD }}\",\n      \"product.product\",\n      \"read\",\n      [[{{ $json.product_id }}]],\n      {\n        \"fields\": [\"id\", \"name\", \"qty_available\", \"list_price\", \"categ_id\"]\n      }\n    ]\n  },\n  \"id\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1472,
+        256
+      ],
+      "id": "684eb328-7863-4e3d-b587-7b888079756c",
+      "name": "get_product_details"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json.result[0];\n\n// Odoo returns `false` for empty fields — normalize before use\nconst qty = result.qty_available === false ? 0 : result.qty_available;\nconst price = result.list_price === false ? null : result.list_price;\nconst category = (result.categ_id === false || !result.categ_id) ? null : result.categ_id[1];\n\nreturn [{\n  json: {\n    product_id: result.id,\n    name: result.name,\n    qty_available: qty,\n    list_price: price,\n    category: category,\n    in_stock: qty > 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        256
+      ],
+      "id": "8d8efe40-b696-4556-99cf-73e8024f92fe",
+      "name": "normalize_product_details"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "search_product": {
+      "main": [
+        [
+          {
+            "node": "rank_results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "build_search_domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "build_search_domain": {
+      "main": [
+        [
+          {
+            "node": "search_product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "rank_results": {
+      "main": [
+        []
+      ]
+    },
+    "test_product_id": {
+      "main": [
+        [
+          {
+            "node": "get_product_details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_product_details": {
+      "main": [
+        [
+          {
+            "node": "normalize_product_details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "afab77ff-0103-4049-99c0-502535866cf6",
+  "meta": {
+    "instanceId": "3ba22a21b4f43fda87a6406853dd8a83e9b892ed400089a9e6f03bb16f4fb9a6"
+  },
+  "nodeGroups": [],
+  "id": "paYi8c0PSaHwZQO5",
+  "tags": [
+    {
+      "name": "PortfolioProject#2",
+      "id": "Iqo5E337irRgj6Fx",
+      "updatedAt": "2026-07-13T11:06:46.824Z",
+      "createdAt": "2026-07-13T11:06:46.824Z"
+    }
+  ]
+}
