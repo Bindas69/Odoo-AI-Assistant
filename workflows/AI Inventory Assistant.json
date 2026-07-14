@@ -13,8 +13,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1072,
-        0
+        832,
+        432
       ],
       "id": "20009be0-a8b1-4259-bc9e-6f8fd816385a",
       "name": "search_product"
@@ -36,8 +36,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        624,
-        0
+        384,
+        432
       ],
       "id": "0e4c7b5a-809b-432f-af51-b1073ef34269",
       "name": "Edit Fields"
@@ -49,8 +49,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        848,
-        0
+        608,
+        432
       ],
       "id": "629b960b-f8bc-4565-8d77-647fa8f1103f",
       "name": "build_search_domain"
@@ -62,8 +62,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1280,
-        0
+        1056,
+        432
       ],
       "id": "068c8bd5-0896-4892-aa98-4415f5815437",
       "name": "rank_results"
@@ -85,8 +85,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        992,
-        256
+        384,
+        656
       ],
       "id": "40c9f644-9f86-4eed-9c01-00ef6654a855",
       "name": "test_product_id"
@@ -103,8 +103,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1472,
-        256
+        608,
+        656
       ],
       "id": "684eb328-7863-4e3d-b587-7b888079756c",
       "name": "get_product_details"
@@ -116,11 +116,160 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1680,
-        256
+        832,
+        656
       ],
       "id": "8d8efe40-b696-4556-99cf-73e8024f92fe",
       "name": "normalize_product_details"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a WhatsApp customer support assistant for a retail store using Odoo ERP. Customers ask about product availability and pricing.\n\nSTRICT RULES — follow these exactly:\n\n1. NEVER state a product's stock level or price unless you have just called a tool and received that exact information back. Do not use prior knowledge, assumptions, or general product knowledge. If you have not called a tool for this specific product in this turn, you must call one before answering.\n\n2. To answer any question about a product, first call search_product with the customer's search term. This returns a list of possible matches with a match_score.\n\n3. If search_product returns exactly ONE match, call get_product_details with that product's ID, then answer using only the returned data.\n\n4. If search_product returns MULTIPLE matches, do NOT guess which one the customer means. List the matching product names and ask the customer to clarify which one they want. Do not call get_product_details until they clarify.\n\n5. If search_product returns NO matches, tell the customer you couldn't find that product and that a team member will follow up. Do not invent a product or suggest a similar one unless it was actually returned by the tool.\n\n6. When stating stock: if in_stock is false, clearly say the item is currently out of stock. Never say something is available when in_stock is false.\n\n7. Keep replies short and natural, like a real WhatsApp message — 1-3 sentences. No markdown, no bullet lists, this is a chat conversation.\n\n8. If the customer refers to \"it\", \"that one\", or similar, use conversation memory to resolve which product they mean, then confirm with a tool call before answering — never assume from memory alone without re-verifying current stock/price."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        736,
+        0
+      ],
+      "id": "62508f19-8d41-4566-a2ac-1c8b07c63ddb",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        224
+      ],
+      "id": "c6661341-1323-48aa-b78b-068b522c67fe",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DGUjoAYwrQUHGyOl",
+          "name": "Gemini API - Project 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Get live stock quantity and price for a specific product by its ID",
+        "workflowId": {
+          "__rl": true,
+          "value": "ejj3mCXW6IHIWPuf",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ejj3mCXW6IHIWPuf",
+          "cachedResultName": "Tool - Get Product Details"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "product_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('product_id', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "product_id"
+          ],
+          "schema": [
+            {
+              "id": "product_id",
+              "displayName": "product_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        224
+      ],
+      "id": "757c8a80-5989-4ded-89b3-96462abbdae8",
+      "name": "Call 'Tool - Get Product Details'"
+    },
+    {
+      "parameters": {
+        "description": "Search the product catalog by name, SKU, or barcode. Returns matching products with a match_score.",
+        "workflowId": {
+          "__rl": true,
+          "value": "ltjHc3oGeXonF46G",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ltjHc3oGeXonF46G",
+          "cachedResultName": "Tool - Search Product"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "query"
+          ],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        992,
+        224
+      ],
+      "id": "382f219b-0a8a-445f-af3e-f48ccb4f15c6",
+      "name": "Call 'Tool - Search Product'"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        384,
+        112
+      ],
+      "id": "e5abbd32-4e3a-448d-b666-d3caa886c3b5",
+      "name": "When chat message received",
+      "webhookId": "2d271da4-fe21-4e72-9b72-c79c781c4873",
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 6
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        736,
+        224
+      ],
+      "id": "64516207-db76-4e6c-bb5a-f9e11c8b444c",
+      "name": "Simple Memory"
     }
   ],
   "pinData": {},
@@ -184,25 +333,82 @@
           }
         ]
       ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Tool - Get Product Details'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Tool - Search Product'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": false
   },
-  "versionId": "afab77ff-0103-4049-99c0-502535866cf6",
+  "versionId": "c2126cf1-909a-4151-ab73-382073e21c7f",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "3ba22a21b4f43fda87a6406853dd8a83e9b892ed400089a9e6f03bb16f4fb9a6"
   },
   "nodeGroups": [],
   "id": "paYi8c0PSaHwZQO5",
   "tags": [
     {
-      "name": "PortfolioProject#2",
-      "id": "Iqo5E337irRgj6Fx",
       "updatedAt": "2026-07-13T11:06:46.824Z",
-      "createdAt": "2026-07-13T11:06:46.824Z"
+      "createdAt": "2026-07-13T11:06:46.824Z",
+      "id": "Iqo5E337irRgj6Fx",
+      "name": "PortfolioProject#2"
     }
   ]
 }
