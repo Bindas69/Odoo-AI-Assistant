@@ -1,0 +1,46 @@
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p8
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database backups / dumps
+*.sql
+*.sql.gz
+backups/
+
+# Temporary files
+temp/
+tmp/
+*.temp
+
+# Credentials and secrets
+credentials.json
+secrets/
+
+# OS specific
+Thumbs.db
+.DS_Store
+
+# n8n runtime data (contains encrypted credentials/config)
+n8n_files/
