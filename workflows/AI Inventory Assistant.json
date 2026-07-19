@@ -14,7 +14,7 @@
       "typeVersion": 4.4,
       "position": [
         832,
-        432
+        352
       ],
       "id": "20009be0-a8b1-4259-bc9e-6f8fd816385a",
       "name": "search_product"
@@ -37,7 +37,7 @@
       "typeVersion": 3.4,
       "position": [
         384,
-        432
+        352
       ],
       "id": "0e4c7b5a-809b-432f-af51-b1073ef34269",
       "name": "Edit Fields"
@@ -50,7 +50,7 @@
       "typeVersion": 2,
       "position": [
         608,
-        432
+        352
       ],
       "id": "629b960b-f8bc-4565-8d77-647fa8f1103f",
       "name": "build_search_domain"
@@ -63,7 +63,7 @@
       "typeVersion": 2,
       "position": [
         1056,
-        432
+        352
       ],
       "id": "068c8bd5-0896-4892-aa98-4415f5815437",
       "name": "rank_results"
@@ -86,7 +86,7 @@
       "typeVersion": 3.4,
       "position": [
         384,
-        656
+        576
       ],
       "id": "40c9f644-9f86-4eed-9c01-00ef6654a855",
       "name": "test_product_id"
@@ -104,7 +104,7 @@
       "typeVersion": 4.4,
       "position": [
         608,
-        656
+        576
       ],
       "id": "684eb328-7863-4e3d-b587-7b888079756c",
       "name": "get_product_details"
@@ -117,7 +117,7 @@
       "typeVersion": 2,
       "position": [
         832,
-        656
+        576
       ],
       "id": "8d8efe40-b696-4556-99cf-73e8024f92fe",
       "name": "normalize_product_details"
@@ -133,8 +133,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        736,
-        0
+        960,
+        -112
       ],
       "id": "62508f19-8d41-4566-a2ac-1c8b07c63ddb",
       "name": "AI Agent"
@@ -146,8 +146,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.1,
       "position": [
-        576,
-        240
+        784,
+        112
       ],
       "id": "c6661341-1323-48aa-b78b-068b522c67fe",
       "name": "Google Gemini Chat Model",
@@ -195,8 +195,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        912,
-        240
+        1088,
+        112
       ],
       "id": "757c8a80-5989-4ded-89b3-96462abbdae8",
       "name": "Call 'Tool - Get Product Details'"
@@ -238,8 +238,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1072,
-        240
+        1232,
+        112
       ],
       "id": "382f219b-0a8a-445f-af3e-f48ccb4f15c6",
       "name": "Call 'Tool - Search Product'"
@@ -252,7 +252,7 @@
       "typeVersion": 1.4,
       "position": [
         384,
-        112
+        96
       ],
       "id": "e5abbd32-4e3a-448d-b666-d3caa886c3b5",
       "name": "When chat message received",
@@ -269,8 +269,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
       "position": [
-        752,
-        256
+        944,
+        112
       ],
       "id": "64516207-db76-4e6c-bb5a-f9e11c8b444c",
       "name": "Simple Memory"
@@ -285,7 +285,7 @@
       "typeVersion": 2.1,
       "position": [
         384,
-        -32
+        -112
       ],
       "id": "dd579530-0261-4f87-91b8-b4b337966dd9",
       "name": "whatsapp_incoming",
@@ -302,8 +302,8 @@
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        1056,
-        0
+        1424,
+        -16
       ],
       "id": "8d3dff0d-8065-4173-9d4a-4dfb06bf1d59",
       "name": "Send an SMS/MMS/WhatsApp message",
@@ -311,6 +311,173 @@
         "twilioApi": {
           "id": "ypzKVK24ZM3vHWR9",
           "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "db837780-6009-481d-8b71-dcdb52a41075",
+              "name": "start_time",
+              "value": "={{ $now.toMillis() }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        -112
+      ],
+      "id": "cc6b3252-6151-47bf-bcc4-b0c86d35f71c",
+      "name": "start_timer"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "conversation_logs",
+          "mode": "list",
+          "cachedResultName": "conversation_logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('whatsapp_incoming').item.json.body.WaId }}",
+            "user_message": "={{ $('whatsapp_incoming').item.json.body.Body }}",
+            "assistant_reply": "={{ $json.output }}",
+            "response_time_ms": "={{ $now.toMillis() - $('start_timer').item.json.start_time }}",
+            "resolved": "={{ !$json.output.toLowerCase().includes(\"couldn't find\") && !$json.output.toLowerCase().includes(\"team member\") }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_message",
+              "displayName": "user_message",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assistant_reply",
+              "displayName": "assistant_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tool_called",
+              "displayName": "tool_called",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "matched_product_id",
+              "displayName": "matched_product_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "match_score",
+              "displayName": "match_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "resolved",
+              "displayName": "resolved",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "response_time_ms",
+              "displayName": "response_time_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1424,
+        -192
+      ],
+      "id": "2636ea82-a814-4006-b78c-efda816f6413",
+      "name": "log_conversation",
+      "credentials": {
+        "postgres": {
+          "id": "Sa4YTJOA0CpxGIhi",
+          "name": "Postgres - AI Assistant Logs"
         }
       }
     }
@@ -436,7 +603,7 @@
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "start_timer",
             "type": "main",
             "index": 0
           }
@@ -450,6 +617,22 @@
             "node": "Send an SMS/MMS/WhatsApp message",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "log_conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "start_timer": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -461,7 +644,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "60afe577-c189-4114-8b55-f2aa3f47fbef",
+  "versionId": "15722de8-649a-4c56-887a-dfde8e6f3bb4",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "3ba22a21b4f43fda87a6406853dd8a83e9b892ed400089a9e6f03bb16f4fb9a6"
