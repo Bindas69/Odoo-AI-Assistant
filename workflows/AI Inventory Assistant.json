@@ -124,6 +124,8 @@
     },
     {
       "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.Body }}",
         "options": {
           "systemMessage": "You are a WhatsApp customer support assistant for a retail store using Odoo ERP. Customers ask about product availability and pricing.\n\nSTRICT RULES — follow these exactly:\n\n1. NEVER state a product's stock level or price unless you have just called a tool and received that exact information back. Do not use prior knowledge, assumptions, or general product knowledge. If you have not called a tool for this specific product in this turn, you must call one before answering.\n\n2. To answer any question about a product, first call search_product with the customer's search term. This returns a list of possible matches with a match_score.\n\n3. If search_product returns exactly ONE match, call get_product_details with that product's ID, then answer using only the returned data.\n\n4. If search_product returns MULTIPLE matches, do NOT guess which one the customer means. List the matching product names and ask the customer to clarify which one they want. Do not call get_product_details until they clarify.\n\n5. If search_product returns NO matches, tell the customer you couldn't find that product and that a team member will follow up. Do not invent a product or suggest a similar one unless it was actually returned by the tool.\n\n6. When stating stock: if in_stock is false, clearly say the item is currently out of stock. Never say something is available when in_stock is false.\n\n7. Keep replies short and natural, like a real WhatsApp message — 1-3 sentences. No markdown, no bullet lists, this is a chat conversation.\n\n8. If the customer refers to \"it\", \"that one\", or similar, use conversation memory to resolve which product they mean, then confirm with a tool call before answering — never assume from memory alone without re-verifying current stock/price."
         }
@@ -144,8 +146,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.1,
       "position": [
-        608,
-        224
+        576,
+        240
       ],
       "id": "c6661341-1323-48aa-b78b-068b522c67fe",
       "name": "Google Gemini Chat Model",
@@ -193,8 +195,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        864,
-        224
+        912,
+        240
       ],
       "id": "757c8a80-5989-4ded-89b3-96462abbdae8",
       "name": "Call 'Tool - Get Product Details'"
@@ -236,8 +238,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        992,
-        224
+        1072,
+        240
       ],
       "id": "382f219b-0a8a-445f-af3e-f48ccb4f15c6",
       "name": "Call 'Tool - Search Product'"
@@ -260,16 +262,57 @@
     },
     {
       "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.WaId }}",
         "contextWindowLength": 6
       },
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
       "position": [
-        736,
-        224
+        752,
+        256
       ],
       "id": "64516207-db76-4e6c-bb5a-f9e11c8b444c",
       "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-incoming",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        -32
+      ],
+      "id": "dd579530-0261-4f87-91b8-b4b337966dd9",
+      "name": "whatsapp_incoming",
+      "webhookId": "e51dce84-bc78-4fac-beb1-f0ac2fbd41f2"
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "={{ '+' + $('whatsapp_incoming').item.json.body.WaId }}",
+        "toWhatsapp": true,
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "8d3dff0d-8065-4173-9d4a-4dfb06bf1d59",
+      "name": "Send an SMS/MMS/WhatsApp message",
+      "credentials": {
+        "twilioApi": {
+          "id": "ypzKVK24ZM3vHWR9",
+          "name": "Twilio account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -388,15 +431,37 @@
           }
         ]
       ]
+    },
+    "whatsapp_incoming": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "c2126cf1-909a-4151-ab73-382073e21c7f",
+  "versionId": "60afe577-c189-4114-8b55-f2aa3f47fbef",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "3ba22a21b4f43fda87a6406853dd8a83e9b892ed400089a9e6f03bb16f4fb9a6"

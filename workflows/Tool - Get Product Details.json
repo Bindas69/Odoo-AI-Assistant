@@ -1,0 +1,116 @@
+{
+  "name": "Tool - Get Product Details",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "product_id",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c3944bd1-fa94-4731-bbc7-f7910f04ff9e",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ODOO_URL }}/jsonrpc",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"call\",\n  \"params\": {\n    \"service\": \"object\",\n    \"method\": \"execute_kw\",\n    \"args\": [\n      \"{{ $env.ODOO_DB }}\",\n      2,\n      \"{{ $env.ODOO_PASSWORD }}\",\n      \"product.product\",\n      \"read\",\n      [[{{ $json.product_id }}]],\n      {\n        \"fields\": [\"id\", \"name\", \"qty_available\", \"list_price\", \"categ_id\"]\n      }\n    ]\n  },\n  \"id\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        240,
+        0
+      ],
+      "id": "f12896a6-484c-4c12-9241-4c04b5763ea5",
+      "name": "get_product_details"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json.result[0];\n\n// Odoo returns `false` for empty fields — normalize before use\nconst qty = result.qty_available === false ? 0 : result.qty_available;\nconst price = result.list_price === false ? null : result.list_price;\nconst category = (result.categ_id === false || !result.categ_id) ? null : result.categ_id[1];\n\nreturn [{\n  json: {\n    product_id: result.id,\n    name: result.name,\n    qty_available: qty,\n    list_price: price,\n    category: category,\n    in_stock: qty > 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        0
+      ],
+      "id": "6de522a6-7335-48ac-aa53-32cf74bf9939",
+      "name": "normalize_product_details"
+    },
+    {
+      "parameters": {
+        "content": "The problem with a plain \"HTTP Request Tool\" here\nA Tool node the AI Agent calls needs to be a single, self-contained unit. But search_product isn't actually one step — it's three: build_search_domain (Code) → the Odoo HTTP call → rank_results (Code). A bare HTTP Request Tool node can't run that Code logic before and after itself. Same problem for get_product_details, which needs the normalize_product_details Code node after it to handle the false-sentinel correctly.\nIf we tried to cram this into a single HTTP node, we'd lose multi-word matching and the false-sentinel fix — both things we specifically built and tested.",
+        "height": 272,
+        "width": 672
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -464
+      ],
+      "id": "498459a3-b073-4a37-ab39-0a75bbde1377",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "get_product_details": {
+      "main": [
+        [
+          {
+            "node": "normalize_product_details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "get_product_details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "69ecf98d-34e3-46de-b4ab-296ed61b25ca",
+  "meta": {
+    "instanceId": "3ba22a21b4f43fda87a6406853dd8a83e9b892ed400089a9e6f03bb16f4fb9a6"
+  },
+  "nodeGroups": [],
+  "id": "ejj3mCXW6IHIWPuf",
+  "tags": [
+    {
+      "updatedAt": "2026-07-13T11:06:46.824Z",
+      "createdAt": "2026-07-13T11:06:46.824Z",
+      "id": "Iqo5E337irRgj6Fx",
+      "name": "PortfolioProject#2"
+    }
+  ]
+}

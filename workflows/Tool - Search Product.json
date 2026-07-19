@@ -1,0 +1,139 @@
+{
+  "name": "Tool - Search Product",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4aa90bb0-66f2-46aa-9be8-ebff6e928f05",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ODOO_URL }}/jsonrpc",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"call\",\n  \"params\": {\n    \"service\": \"object\",\n    \"method\": \"execute_kw\",\n    \"args\": [\n      \"{{ $env.ODOO_DB }}\",\n      2,\n      \"{{ $env.ODOO_PASSWORD }}\",\n      \"product.product\",\n      \"search_read\",\n      [{{ JSON.stringify($json.domain) }}],\n      {\n        \"fields\": [\"id\", \"name\", \"default_code\"],\n        \"limit\": 5\n      }\n    ]\n  },\n  \"id\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "4661c22b-c494-4b9d-ae8f-d301134e484d",
+      "name": "search_product"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.query;\nconst words = query.trim().split(/\\s+/).filter(w => w.length > 0);\n\n// AND together a \"name contains word\" condition for every word\nconst nameConditions = words.map(w => [\"name\", \"ilike\", w]);\nconst andOperators = Array(Math.max(0, nameConditions.length - 1)).fill(\"&\");\nconst nameGroup = [...andOperators, ...nameConditions];\n\n// OR: (all words in name)  OR  (full query matches SKU)  OR  (full query matches barcode)\nconst domain = [\n  \"|\", \"|\",\n  ...nameGroup,\n  [\"default_code\", \"ilike\", query],\n  [\"barcode\", \"ilike\", query]\n];\n\nreturn [{ json: { query, domain } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "b953f0b6-1905-4ff3-b66c-18bfe852fe21",
+      "name": "build_search_domain"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple word-overlap similarity: fraction of query words found in the product name\nfunction matchScore(query, name) {\n  const queryWords = query.toLowerCase().trim().split(/\\s+/);\n  const nameLower = name.toLowerCase();\n  const matched = queryWords.filter(w => nameLower.includes(w));\n  return Math.round((matched.length / queryWords.length) * 100) / 100;\n}\n\nconst query = $('build_search_domain').first().json.query;\nconst results = $input.first().json.result;\n\nconst ranked = results.map(product => ({\n  product_id: product.id,\n  name: product.name,\n  default_code: product.default_code,\n  match_score: matchScore(query, product.name)\n})).sort((a, b) => b.match_score - a.match_score);\n\nreturn [{ json: { query, matches: ranked } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "0a4bd28a-fa4a-4342-9107-e7a372523bc9",
+      "name": "rank_results"
+    },
+    {
+      "parameters": {
+        "content": "The problem with a plain \"HTTP Request Tool\" here\nA Tool node the AI Agent calls needs to be a single, self-contained unit. But search_product isn't actually one step — it's three: build_search_domain (Code) → the Odoo HTTP call → rank_results (Code). A bare HTTP Request Tool node can't run that Code logic before and after itself. Same problem for get_product_details, which needs the normalize_product_details Code node after it to handle the false-sentinel correctly.\nIf we tried to cram this into a single HTTP node, we'd lose multi-word matching and the false-sentinel fix — both things we specifically built and tested.",
+        "height": 208,
+        "width": 928
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -256
+      ],
+      "id": "8ffa3300-9b00-4023-b6fe-5426a893b561",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "search_product": {
+      "main": [
+        [
+          {
+            "node": "rank_results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "build_search_domain": {
+      "main": [
+        [
+          {
+            "node": "search_product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "build_search_domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "6770b2ca-5fd4-489a-93a2-cbd6cc229887",
+  "meta": {
+    "instanceId": "3ba22a21b4f43fda87a6406853dd8a83e9b892ed400089a9e6f03bb16f4fb9a6"
+  },
+  "nodeGroups": [],
+  "id": "ltjHc3oGeXonF46G",
+  "tags": [
+    {
+      "updatedAt": "2026-07-13T11:06:46.824Z",
+      "createdAt": "2026-07-13T11:06:46.824Z",
+      "id": "Iqo5E337irRgj6Fx",
+      "name": "PortfolioProject#2"
+    }
+  ]
+}
